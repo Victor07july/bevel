@@ -241,6 +241,102 @@ kubectl delete namespace supplychain-net org1-net org2-net
 ### GitOps Errors
 - Para testes, você pode desabilitar GitOps editando os roles do Ansible
 
+## 🧹 Limpando o Ambiente
+
+Para remover completamente a rede Fabric e liberar recursos:
+
+### 1. Deletar os Namespaces Kubernetes
+
+```bash
+# Remove todos os namespaces da rede Fabric
+kubectl delete namespace supplychain-net org1-net org2-net
+```
+
+Isso remove automaticamente:
+- Todos os pods (CAs, orderers, peers, couchdb)
+- Todos os services
+- Todos os secrets e configmaps
+- Todos os PVCs (Persistent Volume Claims)
+
+### 2. Remover Kustomizations do Flux (Opcional)
+
+```bash
+# Remove a kustomization do Flux
+flux delete kustomization flux-system --silent
+
+# Ou para manter o Flux mas remover apenas os recursos da rede
+flux suspend kustomization flux-system
+```
+
+### 3. Parar o Vault
+
+```bash
+# Parar o processo do Vault em dev mode
+pkill -f "vault server"
+
+# Ou se você iniciou em um terminal separado, pressione Ctrl+C
+```
+
+### 4. Limpar Arquivos Temporários
+
+```bash
+# Remover logs de deployment
+rm -f /tmp/bevel-deploy-*.log
+
+# Limpar token do Vault (se necessário)
+rm -f ~/.vault-token
+```
+
+### 5. Limpar Arquivos Gerados pelo Ansible (Opcional)
+
+Se você quiser remover os arquivos YAML gerados e fazer um deploy limpo:
+
+```bash
+cd /home/victor/bevel
+
+# Remove os arquivos gerados nas pastas de releases
+git clean -fd platforms/hyperledger-fabric/releases/dev/
+
+# Ou manualmente
+rm -rf platforms/hyperledger-fabric/releases/dev/supplychain/
+rm -rf platforms/hyperledger-fabric/releases/dev/org1/
+rm -rf platforms/hyperledger-fabric/releases/dev/org2/
+```
+
+### 6. Fazer Commit das Remoções (se usar GitOps)
+
+```bash
+cd /home/victor/bevel
+git add platforms/hyperledger-fabric/releases/dev/
+git commit -m "[ci skip] Clean up test deployment"
+git push
+```
+
+**Nota**: O Flux detectará a remoção dos arquivos e automaticamente removerá os recursos correspondentes do cluster.
+
+### Limpeza Completa (Reset Total)
+
+Para voltar ao estado inicial completo:
+
+```bash
+# 1. Deletar namespaces
+kubectl delete namespace supplychain-net org1-net org2-net
+
+# 2. Remover Flux
+flux uninstall --silent
+
+# 3. Parar Vault
+pkill -f "vault server"
+
+# 4. Resetar repositório Git
+cd /home/victor/bevel
+git reset --hard HEAD
+git clean -fd
+
+# 5. Remover logs
+rm -f /tmp/bevel-deploy-*.log
+```
+
 ## 📚 Próximos Passos
 
 Após a rede estar funcionando:
