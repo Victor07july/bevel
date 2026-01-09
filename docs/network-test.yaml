@@ -1,0 +1,266 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# Arquivo de configuração simplificado para rede de teste Hyperledger Fabric
+# Rede com 1 Orderer (RAFT) e 2 Organizações Peer
+network:
+  type: fabric
+  version: 2.2.2
+
+  #Environment section for Kubernetes setup
+  env:
+    type: "test"              # tag para ambiente de teste
+    proxy: none               # 'none' para single-cluster sem proxy
+    retry_count: 50           
+    external_dns: disabled    # Desabilitado para teste local
+
+  # Docker registry - imagens públicas do Hyperledger (não requer credenciais)
+  docker:
+    url: "ghcr.io/hyperledger"
+
+  # Consensus RAFT com 1 orderer (para teste, pode ser 1)
+  consensus:
+    name: raft
+  orderers:
+    - orderer:
+      type: orderer
+      name: orderer1
+      org_name: supplychain
+      uri: orderer1.supplychain-net:7050
+
+  # Canal de teste com 2 organizações
+  channels:
+  - channel:
+    consortium: TestConsortium
+    channel_name: testchannel
+    channel_status: new
+    orderers:
+      - supplychain
+    participants:
+    - organization:
+      name: org1
+      type: creator
+      org_status: new
+      peers:
+      - peer:
+        name: peer0
+        gossipAddress: peer0.org1-net:7051
+        peerAddress: peer0.org1-net:7051
+      ordererAddress: orderer1.supplychain-net:7050
+    - organization:
+      name: org2
+      type: joiner
+      org_status: new
+      peers:
+      - peer:
+        name: peer0
+        gossipAddress: peer0.org2-net:7051
+        peerAddress: peer0.org2-net:7051
+      ordererAddress: orderer1.supplychain-net:7050
+
+  # Organizações
+  organizations:
+    # Organização Orderer
+    - organization:
+      name: supplychain
+      country: BR
+      state: SP
+      location: SaoPaulo
+      subject: "O=Orderer,L=SaoPaulo,C=BR"
+      external_url_suffix: test.local.com
+      org_status: new
+      fabric_console: disabled
+      ca_data:
+        certificate: /home/victor/bevel/build/supplychain/server.crt
+
+      cloud_provider: aws
+      aws:
+        access_key: "aws_access_key"
+        secret_key: "aws_secret_key"
+
+      k8s:
+        region: "default"
+        context: "default"
+        config_file: "/home/victor/.kube/config"
+
+      vault:
+        url: "http://localhost:8200"
+        root_token: "root"
+        secret_path: "secretsv2"
+
+      gitops:
+        git_protocol: "https"
+        git_url: "https://github.com/victor07july/bevel.git"
+        branch: "main"
+        release_dir: "platforms/hyperledger-fabric/releases/dev"
+        component_dir: "platforms/hyperledger-fabric/releases/k8sComponent"
+        chart_source: "platforms/hyperledger-fabric/charts"
+        git_repo: "github.com/victor07july/bevel.git"
+        username: "victor07july"
+        password: "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"
+        email: "victor07july@users.noreply.github.com"
+        private_key: "/home/victor/bevel/build/gitops"
+
+      services:
+        ca:
+          name: ca
+          subject: "/C=BR/ST=SP/L=SaoPaulo/O=Orderer/CN=ca.supplychain-net"
+          type: ca
+          grpc:
+            port: 7054
+
+        consensus:
+          name: raft
+        
+        orderers:
+        - orderer:
+          name: orderer1
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050
+          ordererAddress: orderer1.supplychain-net:7050
+
+    # Organização Peer 1
+    - organization:
+      name: org1
+      country: BR
+      state: SP
+      location: SaoPaulo
+      subject: "O=Org1,OU=Org1,L=SaoPaulo,C=BR"
+      external_url_suffix: test.local.com
+      org_status: new
+      orderer_org: supplychain
+      fabric_console: disabled
+      ca_data:
+        certificate: /home/victor/bevel/build/org1/server.crt
+
+      cloud_provider: aws
+      aws:
+        access_key: "aws_access_key"
+        secret_key: "aws_secret_key"
+
+      k8s:
+        region: "default"
+        context: "default"
+        config_file: "/home/victor/.kube/config"
+
+      vault:
+        url: "http://localhost:8200"
+        root_token: "root"
+        secret_path: "secretsv2"
+
+      gitops:
+        git_protocol: "https"
+        git_url: "https://github.com/victor07july/bevel.git"
+        branch: "main"
+        release_dir: "platforms/hyperledger-fabric/releases/dev"
+        component_dir: "platforms/hyperledger-fabric/releases/k8sComponent"
+        chart_source: "platforms/hyperledger-fabric/charts"
+        git_repo: "github.com/victor07july/bevel.git"
+        username: "victor07july"
+        password: "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"
+        email: "victor07july@users.noreply.github.com"
+        private_key: "/home/victor/bevel/build/gitops"
+
+      services:
+        ca:
+          name: ca
+          subject: "/C=BR/ST=SP/L=SaoPaulo/O=Org1/CN=ca.org1-net"
+          type: ca
+          grpc:
+            port: 7054
+        
+        peers:
+        - peer:
+          name: peer0
+          type: anchor
+          gossippeeraddress: peer0.org1-net:7051
+          peerAddress: peer0.org1-net:7051
+          cli: enabled
+          grpc:
+            port: 7051
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001
+          expressapi:
+            targetPort: 3000
+            port: 3000
+
+    # Organização Peer 2
+    - organization:
+      name: org2
+      country: BR
+      state: RJ
+      location: RioDeJaneiro
+      subject: "O=Org2,OU=Org2,L=RioDeJaneiro,C=BR"
+      external_url_suffix: test.local.com
+      org_status: new
+      orderer_org: supplychain
+      fabric_console: disabled
+      ca_data:
+        certificate: /home/victor/bevel/build/org2/server.crt
+
+      cloud_provider: aws
+      aws:
+        access_key: "aws_access_key"
+        secret_key: "aws_secret_key"
+
+      k8s:
+        region: "default"
+        context: "default"
+        config_file: "/home/victor/.kube/config"
+
+      vault:
+        url: "http://localhost:8200"
+        root_token: "root"
+        secret_path: "secretsv2"
+
+      gitops:
+        git_protocol: "https"
+        git_url: "https://github.com/victor07july/bevel.git"
+        branch: "main"
+        release_dir: "platforms/hyperledger-fabric/releases/dev"
+        component_dir: "platforms/hyperledger-fabric/releases/k8sComponent"
+        chart_source: "platforms/hyperledger-fabric/charts"
+        git_repo: "github.com/victor07july/bevel.git"
+        username: "victor07july"
+        password: "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"
+        email: "victor07july@users.noreply.github.com"
+        private_key: "/home/victor/bevel/build/gitops"
+
+      services:
+        ca:
+          name: ca
+          subject: "/C=BR/ST=RJ/L=RioDeJaneiro/O=Org2/CN=ca.org2-net"
+          type: ca
+          grpc:
+            port: 7054
+        
+        peers:
+        - peer:
+          name: peer0
+          type: anchor
+          gossippeeraddress: peer0.org2-net:7051
+          peerAddress: peer0.org2-net:7051
+          cli: enabled
+          grpc:
+            port: 7051
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001
+          expressapi:
+            targetPort: 3000
+            port: 3000
