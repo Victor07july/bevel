@@ -42,3 +42,7 @@
 **/files/*.json
 **/files/*.crt
 requirements.lock
+
+!build/network-test.yaml
+!build/GUIA-EXECUCAO.md
+!build/start-vault-dev.sh
