@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - supplychain/supplychain-net.yaml
+  - org1/org1-net.yaml
+  - org2/org2-net.yaml
