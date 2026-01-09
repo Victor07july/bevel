@@ -91,14 +91,24 @@ gitops:
   release_dir: "platforms/hyperledger-fabric/releases/dev"
   chart_source: "platforms/hyperledger-fabric/charts"
   username: "<seu-usuario-github>"
-  password: "<seu-token-github>"
+  password: "SEU_GITHUB_TOKEN_AQUI"  # ⚠️ Substitua antes de executar!
   email: "<seu-email@exemplo.com>"
   private_key: ""
 ```
 
-**IMPORTANTE**: 
+**IMPORTANTE - Segurança:** 
 - Para imagens Docker públicas (como ghcr.io/hyperledger), **não adicione credenciais**
-- O 7. Executar o Playbook Ansible
+- O Ansible tem uma verificação condicional que só cria secrets quando `username` está definido
+- Adicionar credenciais vazias causará erro JSON inválido
+
+**IMPORTANTE - GitHub Token:**
+- ⚠️ **NUNCA faça commit do seu Personal Access Token no Git!**
+- Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token antes de executar
+- O arquivo `build/` está no `.gitignore`, mas **sempre verifique** antes de fazer commit
+- Para criar um token: GitHub → Settings → Developer settings → Personal access tokens → Generate new token
+- Permissões necessárias: `repo` (acesso completo ao repositório)
+
+### 6. Instalar Dependências Python e Ansible
 
 No terminal principal (dentro do ambiente virtual):
 
