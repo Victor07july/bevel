@@ -1,2 +1,0 @@
----
-ambassadortls: "./build/{{ name }}/ambassador"

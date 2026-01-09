@@ -1,1 +1,0 @@
-This is a dummy file. Place the public key files in this folder.
