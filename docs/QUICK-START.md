@@ -69,13 +69,36 @@ rm -f /tmp/bevel-deploy-*.log
 
 ## 🔄 Reexecutar Deploy
 
-Se o deploy falhar, limpe o ambiente primeiro:
+### Opção 1: Limpeza Rápida (10-15 min) ⚡ RECOMENDADO
+
+Mantém arquivos YAML gerados, deleta apenas os pods:
+
+```bash
+# 1. Deletar apenas namespaces (mantém arquivos gerados)
+kubectl delete namespace supplychain-net org1-net org2-net
+
+# 2. Aguardar Flux limpar (30 segundos)
+sleep 30
+
+# 3. Reexecutar deploy
+cd /home/victor/bevel
+source .venv/bin/activate
+ansible-playbook -i inventory.ini \
+  platforms/hyperledger-fabric/configuration/deploy-network.yaml \
+  --extra-vars "@/home/victor/bevel/build/network-test.yaml"
+```
+
+> ⏱️ **Tempo**: ~10-15 min (Ansible pula geração de arquivos, mas ainda aguarda 6 min para CAs)
+
+### Opção 2: Limpeza Completa (15-30 min)
+
+Remove tudo e recria do zero:
 
 ```bash
 # 1. Limpar namespaces
 kubectl delete namespace supplychain-net org1-net org2-net
 
-# 2. Limpar arquivos gerados (opcional)
+# 2. Limpar arquivos gerados
 cd /home/victor/bevel
 rm -rf platforms/hyperledger-fabric/releases/dev/supplychain/
 rm -rf platforms/hyperledger-fabric/releases/dev/org1/
@@ -86,12 +109,13 @@ git add . && git commit -m "[ci skip] Clean up" && git push
 sleep 30
 
 # 4. Executar deploy novamente
-cd /home/victor/bevel
 source .venv/bin/activate
 ansible-playbook -i inventory.ini \
   platforms/hyperledger-fabric/configuration/deploy-network.yaml \
   --extra-vars "@/home/victor/bevel/build/network-test.yaml"
 ```
+
+> ⏱️ **Tempo**: 15-30 min (refaz tudo do zero)
 
 ## 📝 Notas Rápidas
 
