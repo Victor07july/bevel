@@ -22,9 +22,10 @@
 .settings
 *.tmproj
 **/.gradle/*
-# Ignore folder named 'build'
-**/*build*/
 **/crypto-config*/*
+
+# Build directory - keep example files but ignore configs with secrets
+build/network-test.yaml
 **/go/*
 **/*tmp*/
 **/flux_known_hosts
@@ -42,7 +43,3 @@
 **/files/*.json
 **/files/*.crt
 requirements.lock
-
-!build/network-test.yaml
-!build/GUIA-EXECUCAO.md
-!build/start-vault-dev.sh

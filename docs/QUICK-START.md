@@ -6,10 +6,23 @@ Guia rápido para levantar a rede Hyperledger Fabric quando tudo já está confi
 
 - Cluster Kubernetes rodando (k3s)
 - Flux CD configurado
-- Arquivo `build/network-test.yaml` com GitHub token atualizado
+- Arquivo `build/network-test.yaml` criado a partir do `.example` com GitHub token configurado
 - Vault instalado
 
 ## 🚀 Comandos para Executar
+
+### 0. Configurar network-test.yaml (primeira vez)
+
+```bash
+# Copiar arquivo de exemplo
+cd /home/victor/bevel/build
+cp network-test.yaml.example network-test.yaml
+
+# Editar e substituir SEU_GITHUB_TOKEN_AQUI pelo token real
+nano network-test.yaml  # ou use code/vim
+```
+
+> ⚠️ **Importante**: O arquivo `network-test.yaml` está no `.gitignore` para proteger seu token!
 
 ### 1. Iniciar o Vault (Terminal 1)
 
