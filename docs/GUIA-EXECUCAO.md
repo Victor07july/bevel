@@ -79,7 +79,9 @@ flux get kustomizations
 
 ### 3. Criar kustomization.yaml para Flux (Opcional)
 
-Crie o arquivo que define os recursos Kubernetes:
+> **Nota**: O Flux já está configurado para monitorar a pasta inteira. Esta etapa é opcional.
+
+Se quiser criar um arquivo kustomization.yaml específico:
 
 ```bash
 cat > platforms/hyperledger-fabric/releases/dev/kustomization.yaml <<EOF
@@ -306,17 +308,13 @@ Isso remove automaticamente:
 - Todos os secrets e configmaps
 - Todos os PVCs (Persistent Volume Claims)
 
-### 2. Remover Kustomizations do Flux (Opcional)
+> ⚠️ **ATENÇÃO CRÍTICA**: **NÃO desinstale o Flux!** 
+> - ❌ **NUNCA execute**: `flux uninstall` ou `flux delete kustomization flux-system`
+> - ✅ **Mantenha**: O Flux instalado e rodando
+> - 🔑 **Motivo**: O Bevel depende 100% do Flux para funcionar (arquivos HelmRelease)
+> - 📝 **Regra**: Só delete namespaces da aplicação, nunca o namespace `flux-system`
 
-```bash
-# Remove a kustomization do Flux
-flux delete kustomization flux-system --silent
-
-# Ou para manter o Flux mas remover apenas os recursos da rede
-flux suspend kustomization flux-system
-```
-
-### 3. Parar o Vault
+### 2. Parar o Vault
 
 ```bash
 # Parar o processo do Vault em dev mode
@@ -325,7 +323,7 @@ pkill -f "vault server"
 # Ou se você iniciou em um terminal separado, pressione Ctrl+C
 ```
 
-### 4. Limpar Arquivos Temporários
+### 3. Limpar Arquivos Temporários
 
 ```bash
 # Remover logs de deployment
@@ -335,7 +333,7 @@ rm -f /tmp/bevel-deploy-*.log
 rm -f ~/.vault-token
 ```
 
-### 5. Limpar Arquivos Gerados pelo Ansible (Opcional)
+### 4. Limpar Arquivos Gerados pelo Ansible (Opcional)
 
 Se você quiser remover os arquivos YAML gerados e fazer um deploy limpo:
 
@@ -362,7 +360,9 @@ git push
 
 **Nota**: O Flux detectará a remoção dos arquivos e automaticamente removerá os recursos correspondentes do cluster.
 
-### Limpeza Completa (Reset Total)
+### Limpeza Completa (Reset Total) - ⚠️ USE COM CUIDADO
+
+> ⚠️ **ATENÇÃO**: Este reset inclui desinstalar o Flux! Você precisará reinstalá-lo depois.
 
 Para voltar ao estado inicial completo:
 
@@ -370,7 +370,7 @@ Para voltar ao estado inicial completo:
 # 1. Deletar namespaces
 kubectl delete namespace supplychain-net org1-net org2-net
 
-# 2. Remover Flux
+# 2. ⚠️ Remover Flux (só faça se realmente necessário!)
 flux uninstall --silent
 
 # 3. Parar Vault
@@ -383,6 +383,9 @@ git clean -fd
 
 # 5. Remover logs
 rm -f /tmp/bevel-deploy-*.log
+
+# 6. ⚠️ Reinstalar Flux (obrigatório após flux uninstall)
+# Siga as instruções da Seção 2: Instalar e Configurar Flux CD
 ```
 
 ## 📚 Próximos Passos
