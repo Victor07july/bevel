@@ -70,12 +70,36 @@ kubectl apply -f /tmp/flux-git-source.yaml
 # Verificar status (deve mostrar READY=True)
 flux get sources git
 flux get kustomizations
+
+# Criar namespace e GitRepository que o Ansible/Bevel espera
+kubectl create namespace flux-test
+kubectl create secret generic flux-system -n flux-test \
+  --from-literal=username=Victor07july \
+  --from-literal=password=SEU_GITHUB_TOKEN_AQUI
+
+cat > /tmp/flux-test-source.yaml <<'EOF'
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-test
+  namespace: flux-test
+spec:
+  interval: 1m
+  url: https://github.com/Victor07july/bevel
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+EOF
+
+kubectl apply -f /tmp/flux-test-source.yaml
 ```
 
 **⚠️ IMPORTANTE**: 
-- Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token real
+- Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token real **em ambos os lugares** (secret do flux-system e flux-test)
 - Esta instalação do Flux deve ser **mantida entre resets da rede**
 - **NUNCA execute** `flux uninstall` ao limpar a rede!
+- O namespace `flux-test` e GitRepository `flux-test` são necessários porque o Ansible gera HelmReleases que referenciam esse nome
 
 ### 3. Criar kustomization.yaml para Flux (Opcional)
 
@@ -113,11 +137,35 @@ cd /home/victor/bevel/build
 
 **Deixe este terminal aberto!** O Vault ficará rodando em `http://localhost:8200` com root token `root`.
 
+**⚠️ IMPORTANTE - IP do Vault:**
+
+Para clusters Kubernetes, o Vault precisa ser acessível pelos pods. Se você estiver usando k3s ou outro cluster:
+
+```bash
+# Obter o IP da sua máquina (primeiro IP da lista)
+hostname -I | awk '{print $1}'
+
+# Exemplo de saída: 192.168.1.100
+```
+
+Use este IP na configuração do Vault no `network-test.yaml` (veja próxima seção).
+
+**Notas:**
+- `localhost` ou `127.0.0.1` **NÃO funcionam** dentro dos pods do Kubernetes
+- Use o IP real da interface de rede (ex: `192.168.1.100`, `10.0.0.5`, etc.)
+- Teste a conectividade: `curl http://SEU_IP:8200/v1/sys/health`
+
 ### 5. Configurar network-test.yaml
 
 Edite o arquivo de configuração da rede:
 
 ```yaml
+# Seção vault - IMPORTANTE: Use o IP real da sua máquina!
+vault:
+  url: "http://192.168.1.100:8200"  # ⚠️ Substitua pelo IP obtido no passo 4
+  root_token: "root"
+  secret_path: "secretsv2"
+
 # Seção docker - IMPORTANTE: Para imagens públicas, não precisa de credenciais!
 docker:
   url: "ghcr.io/hyperledger"
@@ -135,6 +183,13 @@ gitops:
   email: "<seu-email@exemplo.com>"
   private_key: ""
 ```
+
+**IMPORTANTE - Vault URL:** 
+- ⚠️ **NÃO use `localhost` ou `127.0.0.1`** - pods não conseguem acessar!
+- Use o IP real da máquina onde o Vault está rodando (ex: `192.168.1.100`)
+- Obtenha o IP com: `hostname -I | awk '{print $1}'`
+- Configure em **cada organização** no network-test.yaml (supplychain, org1, org2)
+- Teste antes de executar: `curl http://SEU_IP:8200/v1/sys/health`
 
 **IMPORTANTE - Segurança:** 
 - Para imagens Docker públicas (como ghcr.io/hyperledger), **não adicione credenciais**
@@ -359,6 +414,41 @@ git push
 ```
 
 **Nota**: O Flux detectará a remoção dos arquivos e automaticamente removerá os recursos correspondentes do cluster.
+
+### 5. Reinstalar k3s (Quando namespaces ficam presos em "Terminating")
+
+Se o comando `kubectl delete namespace` travar ou os namespaces ficarem presos em "Terminating":
+
+```bash
+# 1. Desinstalar k3s completamente
+/usr/local/bin/k3s-uninstall.sh
+
+# 2. Reinstalar k3s
+curl -sfL https://get.k3s.io | sh -
+
+# 3. Verificar que o cluster está funcionando
+kubectl get nodes
+# Deve mostrar: NAME     STATUS   ROLE           AGE   VERSION
+#               <host>   Ready    control-plane  ...   ...
+
+# 4. Configurar permissões do kubeconfig (se necessário)
+sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+
+# 5. ⚠️ Reinstalar Flux (obrigatório após reinstalar k3s!)
+# Siga as instruções da Seção 2: Instalar e Configurar Flux CD
+```
+
+**Por que reinstalar k3s resolve:**
+- Remove namespaces presos em "Terminating" imediatamente
+- Limpa todos os recursos órfãos (finalizers travados, CRDs inconsistentes)
+- Cria cluster totalmente limpo sem resíduos
+- Mais rápido que esperar finalizers travados
+
+**Depois da reinstalação:**
+1. ✅ Vault pode continuar rodando (não precisa reiniciar)
+2. ⚠️ **Obrigatório**: Reinstalar Flux (Seção 2)
+3. ✅ Repositório Git não precisa de mudanças
+4. ✅ network-test.yaml permanece configurado
 
 ### Limpeza Completa (Reset Total) - ⚠️ USE COM CUIDADO
 

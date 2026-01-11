@@ -72,10 +72,34 @@ kubectl apply -f /tmp/flux-git-source.yaml
 # Verificar status
 flux get sources git
 flux get kustomizations
+
+# Criar namespace e GitRepository que o Ansible/Bevel espera
+kubectl create namespace flux-test
+kubectl create secret generic flux-system -n flux-test \
+  --from-literal=username=Victor07july \
+  --from-literal=password=SEU_GITHUB_TOKEN_AQUI
+
+cat > /tmp/flux-test-source.yaml <<'EOF'
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-test
+  namespace: flux-test
+spec:
+  interval: 1m
+  url: https://github.com/Victor07july/bevel
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+EOF
+
+kubectl apply -f /tmp/flux-test-source.yaml
 ```
 
-> ⚠️ **IMPORTANTE**: Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token real!
-> 📝 **Nota**: Esta instalação do Flux deve ser mantida entre resets da rede!
+> ⚠️ **IMPORTANTE**: Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token real **em ambos os lugares**!
+> 📝 **Nota 1**: Esta instalação do Flux deve ser mantida entre resets da rede!
+> 📝 **Nota 2**: O `flux-test` é necessário porque o Ansible gera HelmReleases com essa referência
 
 ### 2. Iniciar o Vault (Terminal 1)
 
