@@ -9,11 +9,11 @@ global:
     serviceAccountName: vault-auth
     vault:
         address: http://172.30.32.158:8200
-        authPath: testsupplychain
+        authPath: testorg1
         network: fabric
         role: vault-role
         secretEngine: secretsv2
-        secretPrefix: data/testsupplychain
+        secretPrefix: data/testorg1
         tls: false
         type: hashicorp
 image:
@@ -21,11 +21,11 @@ image:
     ca: ghcr.io/hyperledger/bevel-fabric-ca:1.4.8
     pullSecret: ''
 server:
-    adminPassword: supplychain-adminpw
-    adminUsername: supplychain-admin
+    adminPassword: org1-adminpw
+    adminUsername: org1-admin
     clusterIpPort: 7054
     removeCertsOnDelete: true
-    subject: /C=BR/ST=SP/L=SaoPaulo/O=Orderer/CN=ca.supplychain-net
+    subject: /C=BR/ST=SP/L=SaoPaulo/O=Org1/CN=ca.org1-net
     tlsStatus: true
 storage:
     allowedTopologies:
