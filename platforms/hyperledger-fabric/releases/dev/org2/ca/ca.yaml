@@ -26,7 +26,7 @@ spec:
       vault:
         type: hashicorp
         network: fabric
-        address: http://localhost:8200
+        address: http://172.30.32.158:8200
         authPath: testorg2
         secretEngine: secretsv2
         secretPrefix: "data/testorg2"
