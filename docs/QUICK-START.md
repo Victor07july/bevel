@@ -24,7 +24,60 @@ nano network-test.yaml  # ou use code/vim
 
 > ⚠️ **Importante**: O arquivo `network-test.yaml` está no `.gitignore` para proteger seu token!
 
-### 1. Iniciar o Vault (Terminal 1)
+### 1. Instalar e Configurar Flux CD (primeira vez ou após reset)
+
+```bash
+cd /home/victor/bevel
+
+# Instalar Flux no cluster
+flux install
+
+# Criar secret com credenciais do GitHub
+kubectl create secret generic flux-system -n flux-system \
+  --from-literal=username=Victor07july \
+  --from-literal=password=SEU_GITHUB_TOKEN_AQUI
+
+# Criar arquivo de configuração do Flux
+cat > /tmp/flux-git-source.yaml <<EOF
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: bevel-repo
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/Victor07july/bevel
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: bevel-fabric
+  namespace: flux-system
+spec:
+  interval: 1m
+  path: ./platforms/hyperledger-fabric/releases/dev
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: bevel-repo
+EOF
+
+# Aplicar configuração
+kubectl apply -f /tmp/flux-git-source.yaml
+
+# Verificar status
+flux get sources git
+flux get kustomizations
+```
+
+> ⚠️ **IMPORTANTE**: Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token real!
+> 📝 **Nota**: Esta instalação do Flux deve ser mantida entre resets da rede!
+
+### 2. Iniciar o Vault (Terminal 1)
 
 ```bash
 cd /home/victor/bevel/build
@@ -33,7 +86,7 @@ cd /home/victor/bevel/build
 
 > Deixe este terminal aberto. O Vault roda em `http://localhost:8200`
 
-### 2. Ativar Ambiente Python e Executar Deploy (Terminal 2)
+### 3. Ativar Ambiente Python e Executar Deploy (Terminal 2)
 
 ```bash
 cd /home/victor/bevel
@@ -47,7 +100,7 @@ ansible-playbook -i inventory.ini \
 
 > Tempo estimado: 15-30 minutos
 
-### 3. Monitorar Pods (Terminal 3 - Opcional)
+### 4. Monitorar Pods (Terminal 3 - Opcional)
 
 ```bash
 watch -n 3 'kubectl get pods --all-namespaces | grep -E "NAME|supplychain|org1|org2"'
@@ -79,6 +132,9 @@ kubectl delete namespace supplychain-net org1-net org2-net
 # Remover logs
 rm -f /tmp/bevel-deploy-*.log
 ```
+
+> ⚠️ **ATENÇÃO**: **NÃO execute** `flux uninstall`! O Flux deve ser mantido entre resets.
+> O Bevel depende 100% do Flux para funcionar. Sem Flux = Bevel não funciona!
 
 ## 🔄 Reexecutar Deploy
 
@@ -134,8 +190,10 @@ ansible-playbook -i inventory.ini \
 
 - **Vault rodando?** → `curl http://localhost:8200/v1/sys/health`
 - **Ver logs do Ansible** → `tail -f /tmp/bevel-deploy-*.log`
-- **Flux sincronizado?** → `flux get sources git`
+- **Flux sincronizado?** → `flux get sources git && flux get kustomizations`
+- **Flux está instalado?** → `kubectl get pods -n flux-system`
 - **Namespaces criados?** → `kubectl get ns | grep -E "supplychain|org1|org2"`
+- **Ver recursos aplicados pelo Flux** → `kubectl get helmrelease -A`
 
 ---
 
