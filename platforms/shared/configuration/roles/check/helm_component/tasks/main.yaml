@@ -78,9 +78,8 @@
   register: component_data
   retries: "{{ network.env.retry_count }}"
   delay: "{{ delay | default(30) }}"
-  until: component_data.resources|length > 0
+  until: component_data.resources is defined and component_data.resources|length > 0
   when: component_type == "Pod"
-  register: pod_retry_result
 
 # Output debug message if Pod creation fails after retries
 - name: Debug information for pod {{ component_name }} failure
