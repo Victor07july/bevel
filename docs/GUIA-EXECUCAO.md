@@ -20,26 +20,64 @@ cd /home/victor/bevel
 source .venv/bin/activate
 ```
 
-### 2. Configurar Flux CD para GitOps
+### 2. Instalar e Configurar Flux CD para GitOps
 
-O Bevel usa GitOps via Flux CD. Você precisa configurar um fork do repositório Bevel no GitHub:
+O Bevel depende 100% do Flux CD para funcionar. **Instalação obrigatória:**
 
 ```bash
 cd /home/victor/bevel
 
-# Bootstrap do Flux no cluster (substituir com suas credenciais)
-flux bootstrap github \
-  --owner=<seu-usuario-github> \
-  --repository=bevel \
-  --branch=main \
-  --path=platforms/hyperledger-fabric/releases/dev \
-  --personal \
-  --token-auth
+# Instalar Flux no cluster
+flux install
+
+# Criar secret com credenciais do GitHub
+kubectl create secret generic flux-system -n flux-system \
+  --from-literal=username=Victor07july \
+  --from-literal=password=SEU_GITHUB_TOKEN_AQUI
+
+# Criar arquivo de configuração do Flux
+cat > /tmp/flux-git-source.yaml <<EOF
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: bevel-repo
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/Victor07july/bevel
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: bevel-fabric
+  namespace: flux-system
+spec:
+  interval: 1m
+  path: ./platforms/hyperledger-fabric/releases/dev
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: bevel-repo
+EOF
+
+# Aplicar configuração
+kubectl apply -f /tmp/flux-git-source.yaml
+
+# Verificar status (deve mostrar READY=True)
+flux get sources git
+flux get kustomizations
 ```
 
-Quando solicitado, forneça seu GitHub Personal Access Token.
+**⚠️ IMPORTANTE**: 
+- Substitua `SEU_GITHUB_TOKEN_AQUI` pelo seu token real
+- Esta instalação do Flux deve ser **mantida entre resets da rede**
+- **NUNCA execute** `flux uninstall` ao limpar a rede!
 
-### 3. Criar kustomization.yaml para Flux
+### 3. Criar kustomization.yaml para Flux (Opcional)
 
 Crie o arquivo que define os recursos Kubernetes:
 
